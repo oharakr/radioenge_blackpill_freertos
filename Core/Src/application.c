@@ -25,6 +25,6 @@ void AppSendTaskCode(void *argument)
         LoRaWaitDutyCycle();       
         //write code to read from sensors and send via LoRaWAN
 
-        osDelay(30000);
+        osDelay(10000);
     }
 }
