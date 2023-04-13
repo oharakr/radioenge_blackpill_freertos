@@ -22,6 +22,7 @@ typedef enum
   AT_CHMASK,
   AT_SENDB,
   AT_SEND,
+  AT,
   AT_COMMAND_UNDEFINED,
   NUM_AT_COMMANDS
 } ATCommand;
@@ -37,6 +38,7 @@ typedef enum
   AT_BUSY,
   AT_JOIN_ERROR,
   AT_RESET,
+  AT_NO_NETWORK_JOINED,
   AT_RESPONSE_UNDEFINED,
   NUM_AT_RESPONSES
 } ATResponse;
