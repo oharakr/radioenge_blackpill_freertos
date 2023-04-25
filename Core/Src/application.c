@@ -1,31 +1,18 @@
 #include "cmsis_os.h"
 #include "stm32f4xx_hal.h"
 #include "radioenge_modem.h"
+#include "main.h"
 
 extern osTimerId_t PeriodicSendTimerHandle;
 extern osThreadId_t AppSendTaskHandle;
 extern ADC_HandleTypeDef hadc1;
 extern osEventFlagsId_t ModemStatusFlagsHandle;
 extern TIM_HandleTypeDef htim1, htim3;
-
-typedef struct
-{
-    uint32_t seq_no;
-    int32_t temp_oCx100;
-} __attribute__((packed)) TEMPERATURE_OBJ_t;
-
-typedef struct
-{
-    uint16_t compressor_power;
-    uint8_t warning_status;
-} __attribute__((packed)) AC_CONTROLLER_OBJ_t;
+extern osMessageQueueId_t setPWMDutyQueueHandle;
 
 void LoRaWAN_RxEventCallback(uint8_t *data, uint32_t length, uint32_t port, int32_t rssi, int32_t snr)
 {
-    AC_CONTROLLER_OBJ_t rcv_data;
-    rcv_data = *((AC_CONTROLLER_OBJ_t *) data);
-    htim1.Instance->CCR1 = (htim1.Instance->ARR*(rcv_data.compressor_power))/100;
-    htim3.Instance->CCR2 = (htim3.Instance->ARR*(rcv_data.compressor_power))/100;
+    osMessageQueuePut(setPWMDutyQueueHandle, data, 0U, 0U);
 }
 
 void PeriodicSendTimerCallback(void *argument)
@@ -54,5 +41,21 @@ void AppSendTaskCode(void *argument)
         temp.seq_no++;
         osThreadFlagsClear(0x01);
         osThreadFlagsWait(0x01, osFlagsWaitAny, osWaitForever);
+    }
+}
+
+void setPWMDutyTaskCode(void *argument)
+{
+    AC_CONTROLLER_OBJ_t data;
+    osStatus_t pwmEvent; 
+    while(1)
+    {
+        pwmEvent = osMessageQueueGet(setPWMDutyQueueHandle, &data, NULL, osWaitForever);   // wait for message
+        if (pwmEvent == osOK)
+        {
+            //memcpy(&ocPWM_data,&data,sizeof(AC_CONTROLLER_OBJ_t));
+            htim1.Instance->CCR1 = (htim1.Instance->ARR*(data.compressor_power))/100;
+            htim3.Instance->CCR2 = (htim3.Instance->ARR*(data.compressor_power))/100;
+        }
     }
 }
