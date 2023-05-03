@@ -12,7 +12,7 @@ extern osMessageQueueId_t setPWMDutyQueueHandle;
 
 void LoRaWAN_RxEventCallback(uint8_t *data, uint32_t length, uint32_t port, int32_t rssi, int32_t snr)
 {
-    osMessageQueuePut(setPWMDutyQueueHandle, data, 0U, 0U);
+    osMessageQueuePut(setPWMDutyQueueHandle, &data, 0U, 0U);
 }
 
 void PeriodicSendTimerCallback(void *argument)
@@ -46,16 +46,17 @@ void AppSendTaskCode(void *argument)
 
 void setPWMDutyTaskCode(void *argument)
 {
-    AC_CONTROLLER_OBJ_t data;
+    AC_CONTROLLER_OBJ_t *data,pwmData;
     osStatus_t pwmEvent; 
     while(1)
     {
         pwmEvent = osMessageQueueGet(setPWMDutyQueueHandle, &data, NULL, osWaitForever);   // wait for message
+        memcpy(&pwmData,data,sizeof(AC_CONTROLLER_OBJ_t));
         if (pwmEvent == osOK)
         {
             //memcpy(&ocPWM_data,&data,sizeof(AC_CONTROLLER_OBJ_t));
-            htim1.Instance->CCR1 = (htim1.Instance->ARR*(data.compressor_power))/100;
-            htim3.Instance->CCR2 = (htim3.Instance->ARR*(data.compressor_power))/100;
+            htim1.Instance->CCR1 = (htim1.Instance->ARR*(pwmData.compressor_power))/100;
+            htim3.Instance->CCR2 = (htim3.Instance->ARR*(pwmData.compressor_power))/100;
         }
     }
 }
