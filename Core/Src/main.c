@@ -140,6 +140,18 @@ const osThreadAttr_t setPWMDutyTask_attributes = {
   .stack_size = sizeof(setPWMDutyTaskBuffer),
   .priority = (osPriority_t) osPriorityLow7,
 };
+/* Definitions for HeaterPowerTask */
+osThreadId_t HeaterPowerTaskHandle;
+uint32_t HeaterPowerTaskBuffer[ 128 ];
+osStaticThreadDef_t HeaterPowerTaskControlBlock;
+const osThreadAttr_t HeaterPowerTask_attributes = {
+  .name = "HeaterPowerTask",
+  .cb_mem = &HeaterPowerTaskControlBlock,
+  .cb_size = sizeof(HeaterPowerTaskControlBlock),
+  .stack_mem = &HeaterPowerTaskBuffer[0],
+  .stack_size = sizeof(HeaterPowerTaskBuffer),
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* Definitions for uartQueue */
 osMessageQueueId_t uartQueueHandle;
 uint8_t uartQueueBuffer[ 4 * sizeof( void* ) ];
@@ -279,6 +291,7 @@ extern void UARTProcTaskCode(void *argument);
 extern void ModemManagerTaskCode(void *argument);
 extern void AppSendTaskCode(void *argument);
 extern void setPWMDutyTaskCode(void *argument);
+extern void HeaterPowerTaskCode(void *argument);
 extern void PeriodicSendTimerCallback(void *argument);
 extern void ModemLedCallback(void *argument);
 extern void DutyCycleTimerCallback(void *argument);
@@ -430,6 +443,9 @@ int main(void)
   /* creation of setPWMDutyTask */
   setPWMDutyTaskHandle = osThreadNew(setPWMDutyTaskCode, NULL, &setPWMDutyTask_attributes);
 
+  /* creation of HeaterPowerTask */
+  HeaterPowerTaskHandle = osThreadNew(HeaterPowerTaskCode, NULL, &HeaterPowerTask_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -447,6 +463,8 @@ int main(void)
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  // htim3.Instance->CCR2 = (htim3.Instance->ARR*40)/100;
+  // htim1.Instance->CCR1 = (htim1.Instance->ARR*30)/100;
   while (1)
   {
     for (i = 0; i < 8; i++)
@@ -727,7 +745,7 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 9600-1;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)

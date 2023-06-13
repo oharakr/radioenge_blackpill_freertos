@@ -40,6 +40,7 @@ typedef struct
 {
     uint32_t seq_no;
     int32_t temp_oCx100;
+    uint16_t compressor_power; 
 } __attribute__((packed)) TEMPERATURE_OBJ_t;
 
 typedef struct
