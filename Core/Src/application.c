@@ -2,6 +2,7 @@
 #include "stm32f4xx_hal.h"
 #include "radioenge_modem.h"
 #include "main.h"
+#include <math.h>
 
 extern osTimerId_t PeriodicSendTimerHandle;
 extern osThreadId_t AppSendTaskHandle;
@@ -29,6 +30,14 @@ void AppSendTaskCode(void *argument)
     uint32_t modemflags;
     osTimerStart(PeriodicSendTimerHandle, 30000U);
     temp.seq_no = 0;
+    const float dividerVoltage_mV = 3300.0; //KY-013 voltage in millivolts.
+    const float cA = 0.001129148; //Steinhart-Hart Equation coefficient A
+    const float cB = 0.000234125; //Steinhart-Hart Equation coefficient B
+    const float cC = 0.0000000876741; //Steinhart-Hart Equation coefficient C
+    const float divider_R=10e3; //value of the KY-013 fixed resistor
+    float thermistor_R, logThermistor_R; //thermistor resistance and the natural logarithm of the thermistor resistance
+    float tempThermistor;
+    float mV; //read voltage in millivots
 
     while (1)
     {
@@ -37,6 +46,12 @@ void AppSendTaskCode(void *argument)
         HAL_ADC_PollForConversion(&hadc1, 100);
         read = HAL_ADC_GetValue(&hadc1);
         temp.temp_oCx100 = (int32_t)(330 * ((float)read / 4096));
+        mV = dividerVoltage_mV*read/4095.0; //convert ADC reading to mV
+        thermistor_R = (dividerVoltage_mV*divider_R - divider_R*mV)/(mV); //calculate the thermistor resistance
+        logThermistor_R = log(thermistor_R); //calculate the natural logarithm of the thermistor resistance
+        tempThermistor = (1.0 / (cA + cB*logThermistor_R + cC*logThermistor_R*logThermistor_R*logThermistor_R)); //calculate the temperature in Kelvin through the Steinhart-Hart Equation
+        tempThermistor = tempThermistor - 273.15; //convert Kelvin to Celsius
+        temp.temp_oCx100 = tempThermistor*100;
         LoRaSendBNow(2, (uint8_t *)&temp, sizeof(TEMPERATURE_OBJ_t));
         temp.seq_no++;
         osThreadFlagsClear(0x01);
