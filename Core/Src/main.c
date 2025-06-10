@@ -30,7 +30,6 @@
 typedef StaticTask_t osStaticThreadDef_t;
 typedef StaticQueue_t osStaticMessageQDef_t;
 typedef StaticTimer_t osStaticTimerDef_t;
-typedef StaticSemaphore_t osStaticSemaphoreDef_t;
 typedef StaticEventGroup_t osStaticEventGroupDef_t;
 /* USER CODE BEGIN PTD */
 
@@ -210,43 +209,28 @@ const osTimerAttr_t DutyCycleTimer_attributes = {
 };
 /* Definitions for ATCommandSemaphore */
 osSemaphoreId_t ATCommandSemaphoreHandle;
-osStaticSemaphoreDef_t ATCommandSemaphoreControlBlock;
 const osSemaphoreAttr_t ATCommandSemaphore_attributes = {
-  .name = "ATCommandSemaphore",
-  .cb_mem = &ATCommandSemaphoreControlBlock,
-  .cb_size = sizeof(ATCommandSemaphoreControlBlock),
+  .name = "ATCommandSemaphore"
 };
 /* Definitions for ATResponseSemaphore */
 osSemaphoreId_t ATResponseSemaphoreHandle;
-osStaticSemaphoreDef_t ATResponseSemaphoreControlBlock;
 const osSemaphoreAttr_t ATResponseSemaphore_attributes = {
-  .name = "ATResponseSemaphore",
-  .cb_mem = &ATResponseSemaphoreControlBlock,
-  .cb_size = sizeof(ATResponseSemaphoreControlBlock),
+  .name = "ATResponseSemaphore"
 };
 /* Definitions for UARTTXSemaphore */
 osSemaphoreId_t UARTTXSemaphoreHandle;
-osStaticSemaphoreDef_t UARTTXSemaphoreControlBlock;
 const osSemaphoreAttr_t UARTTXSemaphore_attributes = {
-  .name = "UARTTXSemaphore",
-  .cb_mem = &UARTTXSemaphoreControlBlock,
-  .cb_size = sizeof(UARTTXSemaphoreControlBlock),
+  .name = "UARTTXSemaphore"
 };
 /* Definitions for RadioStateSemaphore */
 osSemaphoreId_t RadioStateSemaphoreHandle;
-osStaticSemaphoreDef_t RadioStateSemaphoreControlBlock;
 const osSemaphoreAttr_t RadioStateSemaphore_attributes = {
-  .name = "RadioStateSemaphore",
-  .cb_mem = &RadioStateSemaphoreControlBlock,
-  .cb_size = sizeof(RadioStateSemaphoreControlBlock),
+  .name = "RadioStateSemaphore"
 };
 /* Definitions for LoRaTXSemaphore */
 osSemaphoreId_t LoRaTXSemaphoreHandle;
-osStaticSemaphoreDef_t LoRaTXSemaphoreControlBlock;
 const osSemaphoreAttr_t LoRaTXSemaphore_attributes = {
-  .name = "LoRaTXSemaphore",
-  .cb_mem = &LoRaTXSemaphoreControlBlock,
-  .cb_size = sizeof(LoRaTXSemaphoreControlBlock),
+  .name = "LoRaTXSemaphore"
 };
 /* Definitions for ModemStatusFlags */
 osEventFlagsId_t ModemStatusFlagsHandle;
@@ -314,6 +298,7 @@ const volatile int uxTopUsedPriority = configMAX_PRIORITIES - 1; //this declarat
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
   uint32_t i;  
   (void)uxTopUsedPriority; //this declaration enables thread awareness for FreeRTOS using OpenOCD
@@ -359,22 +344,26 @@ int main(void)
 
   /* Create the semaphores(s) */
   /* creation of ATCommandSemaphore */
-  ATCommandSemaphoreHandle = osSemaphoreNew(1, 1, &ATCommandSemaphore_attributes);
+  ATCommandSemaphoreHandle = osSemaphoreNew(1, 0, &ATCommandSemaphore_attributes);
 
   /* creation of ATResponseSemaphore */
-  ATResponseSemaphoreHandle = osSemaphoreNew(1, 1, &ATResponseSemaphore_attributes);
+  ATResponseSemaphoreHandle = osSemaphoreNew(1, 0, &ATResponseSemaphore_attributes);
 
   /* creation of UARTTXSemaphore */
-  UARTTXSemaphoreHandle = osSemaphoreNew(1, 1, &UARTTXSemaphore_attributes);
+  UARTTXSemaphoreHandle = osSemaphoreNew(1, 0, &UARTTXSemaphore_attributes);
 
   /* creation of RadioStateSemaphore */
-  RadioStateSemaphoreHandle = osSemaphoreNew(1, 1, &RadioStateSemaphore_attributes);
+  RadioStateSemaphoreHandle = osSemaphoreNew(1, 0, &RadioStateSemaphore_attributes);
 
   /* creation of LoRaTXSemaphore */
-  LoRaTXSemaphoreHandle = osSemaphoreNew(1, 1, &LoRaTXSemaphore_attributes);
+  LoRaTXSemaphoreHandle = osSemaphoreNew(1, 0, &LoRaTXSemaphore_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
+  osSemaphoreRelease(ATCommandSemaphoreHandle);
+  osSemaphoreRelease(ATResponseSemaphoreHandle);
+  osSemaphoreRelease(UARTTXSemaphoreHandle);
+  osSemaphoreRelease(RadioStateSemaphoreHandle);
+  osSemaphoreRelease(LoRaTXSemaphoreHandle);
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* Create the timer(s) */
@@ -444,7 +433,9 @@ int main(void)
 
   /* Start scheduler */
   osKernelStart();
+
   /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -801,8 +792,8 @@ static void MX_DMA_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -848,8 +839,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -889,7 +880,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM11) {
+  if (htim->Instance == TIM11)
+  {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
