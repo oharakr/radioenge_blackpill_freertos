@@ -1,6 +1,7 @@
 #ifndef __UARTAT_H
 #define __UARTAT_H
-
+#define SEND_RAW_AT_WAIT_SUCCESS_FLAG (0x40)
+#define SEND_RAW_AT_WAIT_FAILURE_FLAG (0x80)
 #include "cmsis_os.h"
 #include "uartRingBufDMA.h"
 
@@ -80,7 +81,7 @@ typedef struct AT_CMD_DEF
 typedef struct AT_RESPONSE_DEF
 {
   ATResponse response;
-  uint8_t response_string[16];
+  uint8_t response_string[24];
 } AT_RESPONSE_DEF_t;
 
 extern osThreadId_t ATTaskHandle;

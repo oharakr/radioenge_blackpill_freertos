@@ -1,9 +1,8 @@
 #include "cmsis_os.h"
+#include "cmsis_os2.h"
 #include "uart_at.h"
 #include "uartRingBufDMA.h"
 #include <stdio.h>
-
-#define SEND_RAW_AT_WAIT_FLAG (0x80)
 
 uint8_t cmd_buffer[20];
 uint8_t cmd_len = 0;
@@ -54,7 +53,7 @@ ATResponse sendRAWAT(uint8_t *cmd)
 {    
     CMD_t* pATCommand;
     osStatus_t ret;
-    uint32_t retries = 0;
+    uint32_t retries = 0, flags = 0;
     osSemaphoreAcquire(ATCommandSemaphoreHandle, osWaitForever);
     pATCommand = (CMD_t *)osMemoryPoolAlloc(mpid_ATCMD_MemPool, 0U); // get Mem Block
     if(pATCommand != NULL)
@@ -74,13 +73,20 @@ ATResponse sendRAWAT(uint8_t *cmd)
                 {
                     if(retries++>4)
                     {
-                        return AT_ERROR;                
+                        gPendingResponse = AT_ERROR;
+                        osMemoryPoolFree(mpid_ATCMD_MemPool,pATCommand);
+                        osSemaphoreRelease(ATCommandSemaphoreHandle);
+                        return gPendingResponse;
                     }
                 }
             }while(ret != osOK);
             //wait for response
-            osThreadFlagsClear (SEND_RAW_AT_WAIT_FLAG);            
-            osThreadFlagsWait (SEND_RAW_AT_WAIT_FLAG, osFlagsWaitAny, osWaitForever);            
+            osThreadFlagsClear (SEND_RAW_AT_WAIT_SUCCESS_FLAG | SEND_RAW_AT_WAIT_FAILURE_FLAG);            
+            flags = osThreadFlagsWait (SEND_RAW_AT_WAIT_SUCCESS_FLAG | SEND_RAW_AT_WAIT_FAILURE_FLAG, osFlagsWaitAny, osWaitForever);
+            if(flags & SEND_RAW_AT_WAIT_FAILURE_FLAG)
+            {
+                gPendingResponse = AT_ERROR;
+            }
         }
         else
         {
@@ -147,7 +153,7 @@ void ATHandlingTaskCode(void *argument)
                 else
                 {                    
                     gPendingResponse = AT_TIMEOUT;
-                    osThreadFlagsSet(PendingCommand->RequestedBy, SEND_RAW_AT_WAIT_FLAG);
+                    osThreadFlagsSet(PendingCommand->RequestedBy, SEND_RAW_AT_WAIT_FAILURE_FLAG);
                     osMemoryPoolFree(mpid_ATCMD_MemPool,PendingCommand);
                     PendingCommand = NULL;                    
                     ATTaskFSM = AT_IDLE;
@@ -183,7 +189,7 @@ void ATHandlingTaskCode(void *argument)
                         gPendingResponse = AT_ERROR;
                         if(PendingCommand)
                         {
-                            osThreadFlagsSet(PendingCommand->RequestedBy, SEND_RAW_AT_WAIT_FLAG);
+                            osThreadFlagsSet(PendingCommand->RequestedBy, SEND_RAW_AT_WAIT_FAILURE_FLAG);
                             osMemoryPoolFree(mpid_ATCMD_MemPool,PendingCommand);
                         }
                         osMemoryPoolFree(mpid_ATCMD_MemPool,new_cmd);                        
@@ -228,7 +234,7 @@ void ATHandlingTaskCode(void *argument)
                         gPendingResponse = AT_COMMANDS[PendingCommand->command].expected_response;
                         if (PendingCommand)
                         {
-                            osThreadFlagsSet(PendingCommand->RequestedBy, SEND_RAW_AT_WAIT_FLAG);
+                            osThreadFlagsSet(PendingCommand->RequestedBy, SEND_RAW_AT_WAIT_SUCCESS_FLAG);
                             osMemoryPoolFree(mpid_ATCMD_MemPool, PendingCommand);
                         }
                         osMemoryPoolFree(mpid_ATCMD_MemPool, new_cmd);
@@ -251,7 +257,7 @@ void ATHandlingTaskCode(void *argument)
                             gPendingResponse = new_cmd->response;
                             if(PendingCommand != NULL)
                             {
-                                osThreadFlagsSet(PendingCommand->RequestedBy, SEND_RAW_AT_WAIT_FLAG);
+                                osThreadFlagsSet(PendingCommand->RequestedBy, SEND_RAW_AT_WAIT_FAILURE_FLAG);
                                 osMemoryPoolFree(mpid_ATCMD_MemPool, PendingCommand);
                             }
                             osMemoryPoolFree(mpid_ATCMD_MemPool, new_cmd);
